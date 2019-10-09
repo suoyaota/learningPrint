@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html style="height: 100%" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title> learningPrint</title>
+</head>
+<body style="height: 100%; margin: 0">
+<p th:text="'欢迎，' + ${userName} + ',愿你的学习历程图如泛着星光的蔚蓝海洋！'"></p>
+<p>我的学习历程</p>
+<div id="container" style="height: 100%"></div>
+<p>新增（更新）学习时长记录</p>
+<form action="/updateStudyLength" method="post">
+    日期：<input id = "studyDate" name = "studyDate"type="date" value="2019-10-01" min="2019-01-01" max="2021-6-30"/>
+    学习时间（小时）： <input id = "studyLength" name = "studyLength" type="number" value="8" min="0" step="0.5" max="24"/>
+    <input type="submit" />
+</form>
+
+<p>新增（更新）学习成就事件</p>
+<form action="/updateLearningAchievement" method = "post">
+    日期：<input name="completionDate" type="date" value="2019-10-01" min="2019-01-01" max="2021-6-30"/>
+    达成成就：<input name="achievement" type="text"/>
+    <input type="submit" />
+</form>
+<!--<button id = "button2">提交学习成就</button>-->
+
+<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/echarts.min.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts-gl/echarts-gl.min.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts-stat/ecStat.min.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/extension/dataTool.min.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/map/js/china.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/map/js/world.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/extension/bmap.min.js"></script>
+<script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/simplex.js"></script>
+<script type="text/javascript">
+
+
+    var dom = document.getElementById("container");
+    var myChart = echarts.init(dom);
+    var app = {};
+    option = null;
+    // var graphData = [
+    //     [
+    //         // Consider timeoffset, add two days to avoid overflow.
+    //         1485878400000 + 3600 * 24 * 1000 * 2 +3600 * 24 * 1000 * 900,
+    //         '学完了java'
+    //     ],
+    //     [
+    //         1486137600000+3600 * 24 * 1000 * 900,
+    //         '学完了go'
+    //     ],
+    //     [
+    //         1486569600000+3600 * 24 * 1000 * 900,
+    //         '来到地球第18年'
+    //     ],
+    //     [
+    //         1486915200000+3600 * 24 * 1000 * 900,
+    //         '学完了echarts'
+    //     ],
+    //     [
+    //         1487347200000+3600 * 24 * 1000 * 900,
+    //         '日历图完成'
+    //     ],
+    //     [
+    //         1487779200000 + 3600 * 24 * 1000 * 15+3600 * 24 * 1000 * 900,
+    //         'funcode'
+    //     ],
+    //     [
+    //         1488124800000 + 3600 * 24 * 1000 * 23+3600 * 24 * 1000 * 900,
+    //         '看完了jvm'
+    //     ]
+    // ];
+    var graphData = [];
+
+    $.ajax({
+        url: "/getGraphData",
+        type:'get',
+        dataType:'json',
+        async:false,
+        success:function(data){
+            console.log(data);
+            for(var i = data.length-1; i>=0;i--) {
+                var completionDateGraph = +echarts.number.parseDate(data[i].completionDate);
+                graphData.push([completionDateGraph,data[i].achievement]);
+            }
+        },
+        error:function(){
+        }
+    })
+    console.log(graphData);
+
+    var links = graphData.map(function (item, idx) {
+        return {
+            source: idx,
+            target: idx + 1
+        };
+    });
+    links.pop();
+    option = {
+        tooltip: {
+            position: 'top',
+            formatter: function (p) {
+                var format = echarts.format.formatTime('yyyy-MM-dd', p.data[0]);
+                return format + ': ' + p.data[1];
+            }
+        },
+        calendar: {
+            top: 'middle',
+            left: 'center',
+            //orient: 'vertical',
+            cellSize: 40,
+            yearLabel: {
+                margin: 50,
+                textStyle: {
+                    fontSize: 30
+                }
+            },
+            dayLabel: {
+                firstDay: 1,
+                nameMap: 'cn'
+            },
+            monthLabel: {
+                nameMap: 'cn',
+                margin: 15,
+                textStyle: {
+                    fontSize: 20,
+                    color: '#999'
+                }
+            },
+            range: ['2019-07', '2019-12-31']
+        },
+        visualMap: {
+            min: 0,
+            max: 24,
+            type: 'piecewise',
+            left: 'center',
+            bottom: 30,
+            inRange: {
+                color: ['#C7DBFF','#5291FF']
+            },
+            seriesIndex: [1],
+            orient: 'horizontal'
+        },
+        series: [{
+            type: 'graph',
+            edgeSymbol: ['none', 'arrow'],
+            coordinateSystem: 'calendar',
+            links:links,
+            symbolSize: 15,
+            calendarIndex: 0,
+            itemStyle: {
+                normal: {
+                    color: 'yellow',
+                    shadowBlue: 9,
+                    shadowOffsetX: 1.5,
+                    shadowOffsetY: 3,
+                    shadowColor: '#555'
+                }
+            },
+            lineStyle: {
+                normal: {
+                    color: '#D10E00',
+                    width: 1,
+                    opacity: 1
+                }
+            },
+            data: graphData,
+            z: 20
+        }, {
+            type: 'heatmap',
+            coordinateSystem: 'calendar',
+            data: []
+        }]
+    };
+    ;
+    if (option && typeof option === "object") {
+        myChart.setOption(option, true);
+    }
+
+
+    $.ajax({
+        url: "/getLengthData",
+        type:'get',
+        dataType:'json',
+        async:false,
+        success:function(data){
+            console.log(data);
+            var lengthData = [];
+            for(var i = 0; i<data.length;i++) {
+                lengthData.push([data[i].studyDate,data[i].studyTime]);
+            }
+            myChart.setOption({
+                series:[{},{
+                    data: lengthData//接受后台返回的数据，需要注意数据类型
+                }]
+            });
+        },
+        error:function(){
+
+        }
+    })
+
+
+</script>
+</body>
+</html>
